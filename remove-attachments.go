@@ -189,7 +189,10 @@ func readBoundaryFromHeaders(headers []*gmail.MessagePartHeader) string {
 	}
 
 	if boundary == "" {
-		log.Fatalf("Unable to find boundar in headers [%+v]", headers)
+		for _, header := range headers {
+			log.Printf("%+v: %+v\n", header.Name, header.Value)
+		}
+		log.Fatalf("Unable to find boundary in headers [%+v]", headers)
 	}
 	log.Printf("Found boundary [%s]\n", boundary)
 
@@ -308,19 +311,6 @@ func main() {
 		fmt.Println("----------------------------------------------------")
 
 		fullMsg, _ := service.Users.Messages.Get(user, msg.Id).Format("full").Do()
-		boundary := readBoundaryFromHeaders(fullMsg.Payload.Headers)
-		fullMsgPayloadExAttachments := convertPartToRawExAttachments(fullMsg.Payload, boundary, 0)
-		fmt.Println("-------------RAW MESSAGE EX ATTACHMENTS--------------------")
-		fmt.Printf("%+v\n", fullMsgPayloadExAttachments)
-		fmt.Println("----------------------------------------------------")
-
-		// TODO: Comparing the message without attachments to the original message will of course be different.
-		//       Need to add unit tests instead. Download msg, encode base64 raw, compare to raw message,
-		//       insert new message, download new message, compare parts to original message. delete/clean up.
-		// if fullMsgPayloadExAttachments != string(decodedMsg) {
-		// 	fmt.Printf("CAUTION. STRINGS ARE NOT IDENTICAL. DIFF:")
-		// 	fmt.Printf("%+v\n", diff.Diff(string(decodedMsg), fullMsgPayloadExAttachments))
-		// }
 
 		var parts []*gmail.MessagePart
 		parts = getMessagePartsRecursively(fullMsg.Payload, parts)
@@ -341,14 +331,28 @@ func main() {
 			}
 		}
 
-		fmt.Printf("Attachments (%+v):\n", len(attachments))
-		for _, a := range attachments {
-			fmt.Println(a)
-		}
-
 		if len(attachments) == 0 {
 			log.Printf("No attachments found on message [%+v].\n", msg.Id)
 			continue
+		}
+
+		boundary := readBoundaryFromHeaders(fullMsg.Payload.Headers)
+		fullMsgPayloadExAttachments := convertPartToRawExAttachments(fullMsg.Payload, boundary, 0)
+		fmt.Println("-------------RAW MESSAGE EX ATTACHMENTS--------------------")
+		fmt.Printf("%+v\n", fullMsgPayloadExAttachments)
+		fmt.Println("----------------------------------------------------")
+
+		// TODO: Comparing the message without attachments to the original message will of course be different.
+		//       Need to add unit tests instead. Download msg, encode base64 raw, compare to raw message,
+		//       insert new message, download new message, compare parts to original message. delete/clean up.
+		// if fullMsgPayloadExAttachments != string(decodedMsg) {
+		// 	fmt.Printf("CAUTION. STRINGS ARE NOT IDENTICAL. DIFF:")
+		// 	fmt.Printf("%+v\n", diff.Diff(string(decodedMsg), fullMsgPayloadExAttachments))
+		// }
+
+		fmt.Printf("Attachments (%+v):\n", len(attachments))
+		for _, a := range attachments {
+			fmt.Println(a)
 		}
 
 		fmt.Println("Do you want to delete the attachments from this email? (y or n)")
