@@ -325,6 +325,7 @@ func main() {
 		var parts []*gmail.MessagePart
 		parts = getMessagePartsRecursively(fullMsg.Payload, parts)
 
+		// Useful reference: https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
 		var attachments []string
 		for _, part := range parts {
 			if part.Filename != "" && part.Body.AttachmentId != "" {
